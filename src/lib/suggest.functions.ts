@@ -39,10 +39,10 @@ export const submitSuggestionSecure = createServerFn({ method: "POST" })
       throw new Error("Turnstile verification failed. Please try again.");
     }
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabase } = await import("@/integrations/supabase/client");
     const suggestionInput = data.suggestion as TablesInsert<"suggestions">;
 
-    const { data: result, error } = await supabaseAdmin
+    const { data: result, error } = await supabase
       .from("suggestions")
       .insert(suggestionInput)
       .select("id")
