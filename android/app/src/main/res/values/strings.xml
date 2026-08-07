@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">دليل العيادات</string>
+    <string name="title_activity_main">دليل العيادات</string>
+    <string name="package_name">eg.nearbyhealth.clinics</string>
+    <string name="custom_url_scheme">eg.nearbyhealth.clinics</string>
+</resources>

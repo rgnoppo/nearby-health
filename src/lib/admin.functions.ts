@@ -15,6 +15,10 @@ export const bootstrapAdmin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Cheap up-front check purely so a normal (non-race) second visit gets a
+    // clear error without creating an auth user first. The real guarantee
+    // against two concurrent bootstraps both succeeding is the atomic
+    // grant_first_admin() call below, not this check.
     const { count, error: countError } = await supabaseAdmin
       .from("user_roles")
       .select("id", { count: "exact", head: true })
@@ -29,10 +33,21 @@ export const bootstrapAdmin = createServerFn({ method: "POST" })
     });
     if (error || !created.user) throw new Error(error?.message ?? "Could not create admin");
 
-    const { error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: created.user.id, role: "admin" });
-    if (roleError) throw new Error("Could not grant admin role");
+    // Atomic (locked) check-and-insert — see grant_first_admin() migration.
+    // If two bootstrap requests race, only one of these calls succeeds; the
+    // loser's freshly-created auth user is deleted below so it doesn't sit
+    // around with no role attached.
+    const { error: roleError } = await supabaseAdmin.rpc("grant_first_admin", {
+      _user_id: created.user.id,
+    });
+    if (roleError) {
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id).catch(() => {
+        // Best-effort cleanup — if this also fails, an orphaned auth user
+        // with no admin role remains, which is inert (can't sign in to
+        // anything privileged) rather than unsafe.
+      });
+      throw new Error("An admin account already exists");
+    }
 
     return { ok: true };
   });

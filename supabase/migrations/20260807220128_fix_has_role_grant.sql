@@ -1,0 +1,23 @@
+-- The previous migration (20260806115304) revoked EXECUTE on has_role()
+-- from `authenticated` as well as `anon`/`public`, leaving no role able to
+-- call it directly at all.
+--
+-- RLS policies that reference has_role() internally (see clinics/categories/
+-- suggestions policies) keep working regardless of this grant, because
+-- has_role() is SECURITY DEFINER and Postgres evaluates it with the
+-- function owner's privileges when it's used inside a policy expression —
+-- so admin read/write access was never actually broken.
+--
+-- However, leaving EXECUTE fully revoked means:
+--   1. Any future code that calls has_role() directly via an RPC
+--      (supabase.rpc('has_role', ...)) — a very natural way to check "is
+--      this logged-in user an admin?" client-side for UI purposes — would
+--      fail for every user, including real admins, with a permission error.
+--   2. It's inconsistent with the intent of the original migration, which
+--      was to stop *anonymous* users probing role membership, not to lock
+--      authenticated users out of a function that only reveals whether
+--      *they themselves* hold a given role (harmless to expose to the
+--      caller who already knows their own auth.uid()).
+--
+-- Restore EXECUTE for `authenticated` only; anon stays revoked.
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated;

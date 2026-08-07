@@ -1,0 +1,104 @@
+apply plugin: 'com.android.application'
+
+// --- Release signing ---------------------------------------------------
+// Reads the keystore path/passwords from environment variables first
+// (ANDROID_KEYSTORE_PATH / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS /
+// ANDROID_KEY_PASSWORD) — the right choice for CI and for anyone building
+// locally without wanting secrets on disk in plaintext.
+//
+// Falls back to android/keystore.properties (gitignored, untracked) ONLY if
+// that file exists, purely for convenience during local development. This
+// file must never be committed — see android/keystore.properties.example
+// for the format and android/README-SIGNING.md for how to set the env vars.
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def resolvedStoreFile = System.getenv('ANDROID_KEYSTORE_PATH') ?: keystoreProperties['storeFile']
+def resolvedStorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD') ?: keystoreProperties['storePassword']
+def resolvedKeyAlias = System.getenv('ANDROID_KEY_ALIAS') ?: keystoreProperties['keyAlias']
+def resolvedKeyPassword = System.getenv('ANDROID_KEY_PASSWORD') ?: keystoreProperties['keyPassword']
+def hasSigningConfig = resolvedStoreFile && resolvedStorePassword && resolvedKeyAlias && resolvedKeyPassword
+
+android {
+    namespace = "eg.nearbyhealth.clinics"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "eg.nearbyhealth.clinics"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (hasSigningConfig) {
+            release {
+                storeFile rootProject.file(resolvedStoreFile)
+                storePassword resolvedStorePassword
+                keyAlias resolvedKeyAlias
+                keyPassword resolvedKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            // Obfuscates and strips unused Java/Kotlin code (Capacitor bridge,
+            // plugins) from the release APK, and removes unused resources.
+            // This does NOT touch the JS bundle in www-android/ — that's a
+            // separate build step (see vite.config.capacitor.ts / esbuild
+            // minify) and is handled there.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasSigningConfig) {
+                signingConfig signingConfigs.release
+            }
+            // If no signing config is available (no env vars, no local
+            // keystore.properties), Gradle falls back to the auto-generated
+            // debug key — the build still succeeds locally, but that output
+            // is NOT the real signed release and must not be distributed.
+        }
+        debug {
+            // Keep debug builds fast to iterate on; only the release build
+            // (the one actually distributed) is hardened.
+            minifyEnabled false
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

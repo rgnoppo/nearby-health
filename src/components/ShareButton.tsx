@@ -1,8 +1,13 @@
 import { useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import Share2 from "lucide-react/dist/esm/icons/share-2";
 import Check from "lucide-react/dist/esm/icons/check";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+// Inside the Android app the WebView's origin is https://localhost, not the
+// real site — shared links must always point at the public site instead.
+const PUBLIC_SITE_ORIGIN = (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined)?.replace(/\/$/, "");
 
 export function ShareButton({ id, name, type = "clinic", className, variant = "default" }: { id: string; name: string; type?: "clinic" | "category"; className?: string, variant?: "default" | "icon" }) {
   const [copied, setCopied] = useState(false);
@@ -11,7 +16,10 @@ export function ShareButton({ id, name, type = "clinic", className, variant = "d
     e.preventDefault();
     e.stopPropagation();
 
-    const shareUrl = `${window.location.origin}/s/${type}/${id}`;
+    const origin = Capacitor.isNativePlatform() && PUBLIC_SITE_ORIGIN
+      ? PUBLIC_SITE_ORIGIN
+      : window.location.origin;
+    const shareUrl = `${origin}/s/${type}/${id}`;
 
     if (navigator.share && /mobile|android|iphone|ipad/i.test(navigator.userAgent)) {
       try {

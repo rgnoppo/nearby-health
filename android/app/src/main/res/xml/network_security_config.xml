@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Blocks all cleartext (plain HTTP) traffic app-wide. The app only ever talks
+  to Supabase over https:// and is served over https://localhost inside the
+  WebView (see capacitor.config.ts androidScheme), so there is no legitimate
+  case for HTTP — this closes off a common MITM / traffic-sniffing vector.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

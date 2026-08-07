@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
@@ -27,7 +28,16 @@ function AdminAuth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const existing = useQuery({ queryKey: ["admin-exists"], queryFn: () => checkAdmin({}) });
+  // `adminExists` is a TanStack Start server function — there is no server to
+  // answer it inside the Capacitor app, so it's only called on the web build.
+  // The admin account is created once from the website; inside the app we
+  // always go straight to the normal (fully client-side Supabase) sign-in form.
+  const isNative = Capacitor.isNativePlatform();
+  const existing = useQuery({
+    queryKey: ["admin-exists"],
+    queryFn: () => checkAdmin({}),
+    enabled: !isNative,
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -57,7 +67,7 @@ function AdminAuth() {
     onError: () => toast.error("مقدرناش نعمل حساب الإدارة."),
   });
 
-  const isSetup = existing.data?.exists === false;
+  const isSetup = !isNative && existing.data?.exists === false;
   const pending = signIn.isPending || setup.isPending;
 
   return (
