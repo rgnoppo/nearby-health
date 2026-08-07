@@ -189,7 +189,7 @@ function Home() {
               </p>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border-2 border-dashed border-border p-8 text-center">
+            <div className="rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-8 text-center">
               <p className="text-base font-semibold text-foreground">
                 مفيش عيادة مطابقة للبحث
               </p>
@@ -225,7 +225,7 @@ function Home() {
 
         {/* ── Footer CTA ── */}
         {!clinics.isLoading && !clinics.isError && filtered.length > 0 && (
-          <div className="mt-8 rounded-2xl border border-dashed border-border p-5 text-center">
+          <div className="mt-8 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-5 text-center">
             <p className="text-base font-semibold text-foreground">شايف عيادة ناقصة؟</p>
             <p className="mt-1 text-sm text-muted-foreground">
               ساعدنا وضيفها في أقل من دقيقة.

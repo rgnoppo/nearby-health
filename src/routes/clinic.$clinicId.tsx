@@ -198,7 +198,7 @@ function ClinicDetail() {
         )}
 
         {/* ── Suggest CTA ── */}
-        <div className="mt-8 rounded-2xl border-2 border-dashed border-border p-5 text-center">
+        <div className="mt-8 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-5 text-center">
           <p className="text-base font-semibold text-foreground">
             شايف عيادة ناقصة من الدليل؟
           </p>
