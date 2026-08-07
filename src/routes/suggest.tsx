@@ -16,7 +16,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { fetchCategories, submitSuggestion } from "@/lib/clinic-api";
+import { fetchCategories } from "@/lib/clinic-api";
+import { submitSuggestionSecure } from "@/lib/suggest.functions";
+import { Turnstile } from "@marsidev/react-turnstile";
 import { cn } from "@/lib/utils";
 import { SiteFooter } from "@/components/SiteFooter";
 
@@ -85,6 +87,7 @@ function SuggestPage() {
   const [showOptional, setShowOptional] = useState(false);
   const [requestCode, setRequestCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const categories = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
 
   const mutation = useMutation({
@@ -102,18 +105,26 @@ function SuggestPage() {
         .map((n) => n.trim())
         .filter(Boolean)
         .map((number) => ({ number, label: "" }));
-      const id = await submitSuggestion({
-        name: d.name,
-        address: d.address,
-        landmark: d.landmark,
-        phone: d.phone,
-        extra_phones: extra.length > 0 ? extra : null,
-        category_id: d.category_id || null,
-        specialty: d.specialty || null,
-        whatsapp: d.whatsapp || null,
-        working_hours: d.working_hours || null,
-        submitter_note: d.submitter_note || null,
-        status: "pending",
+      if (!turnstileToken) {
+        toast.error("يرجى إكمال التحقق الأمني أولاً.");
+        throw new Error("turnstile-missing");
+      }
+
+      const id = await submitSuggestionSecure({
+        token: turnstileToken,
+        suggestion: {
+          name: d.name,
+          address: d.address,
+          landmark: d.landmark,
+          phone: d.phone,
+          extra_phones: extra.length > 0 ? extra : null,
+          category_id: d.category_id || null,
+          specialty: d.specialty || null,
+          whatsapp: d.whatsapp || null,
+          working_hours: d.working_hours || null,
+          submitter_note: d.submitter_note || null,
+          status: "pending",
+        }
       });
       return toRequestCode(id);
     },
@@ -124,6 +135,9 @@ function SuggestPage() {
       if (error.message === "invalid") {
         toast.error("كمّل الحقول المطلوبة الأول.");
         return;
+      }
+      if (error.message === "turnstile-missing") {
+        return; // Toast already shown
       }
       toast.error("الاقتراح مبعتش. جرّب تاني.");
     },
@@ -444,12 +458,21 @@ function SuggestPage() {
             )}
           </div>
 
+          <div className="flex justify-center my-4">
+            <Turnstile
+              siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
+              onSuccess={(token) => setTurnstileToken(token)}
+              onError={() => setTurnstileToken("")}
+              onExpire={() => setTurnstileToken("")}
+            />
+          </div>
+
           {/* Submit */}
           <Button
             type="submit"
             size="lg"
             className="h-15 w-full rounded-2xl text-base font-bold shadow-md shadow-primary/25 transition-all"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !turnstileToken}
           >
             {mutation.isPending ? (
               <span className="flex items-center gap-2">

@@ -25,6 +25,9 @@ def hasSigningConfig = resolvedStoreFile && resolvedStorePassword && resolvedKey
 android {
     namespace = "eg.nearbyhealth.clinics"
     compileSdk = rootProject.ext.compileSdkVersion
+    buildFeatures {
+    buildConfig = true
+    }
     defaultConfig {
         applicationId "eg.nearbyhealth.clinics"
         minSdkVersion rootProject.ext.minSdkVersion

@@ -2,6 +2,7 @@ package eg.nearbyhealth.clinics;
 
 import android.os.Bundle;
 import android.webkit.WebView;
+import eg.nearbyhealth.clinics.BuildConfig;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
