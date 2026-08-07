@@ -132,6 +132,7 @@ function SuggestPage() {
       setRequestCode(code);
     },
     onError: (error) => {
+      console.error("[Suggestion Error]:", error);
       if (error.message === "invalid") {
         toast.error("كمّل الحقول المطلوبة الأول.");
         return;

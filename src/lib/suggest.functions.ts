@@ -4,7 +4,7 @@ import type { TablesInsert } from "@/integrations/supabase/types";
 
 // ─── Turnstile verification ───────────────────────────────────────────────────
 const verifyTurnstile = async (token: string, ip?: string) => {
-  const secretKey = process.env.TURNSTILE_SECRET_KEY;
+  const secretKey = process.env.TURNSTILE_SECRET_KEY || process.env.VITE_TURNSTILE_SECRET_KEY;
   if (!secretKey) {
     console.warn("[Turnstile] TURNSTILE_SECRET_KEY is missing — skipping verification (dev mode).");
     return true;
@@ -54,13 +54,20 @@ export const submitSuggestionSecure = createServerFn({ method: "POST" })
       throw new Error("Turnstile verification failed. Please try again.");
     }
 
-    // 2. Use the SERVICE-ROLE admin client so the insert is never blocked
-    //    by RLS auth checks (this runs server-side only; the key is never
-    //    exposed to the browser).
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // 2. Use the SERVICE-ROLE admin client if available, otherwise fallback to anon client
+    let supabaseClient;
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      supabaseClient = supabaseAdmin;
+    } else {
+      console.warn("[Supabase] SUPABASE_SERVICE_ROLE_KEY is missing in environment. Falling back to anon client.");
+      const { supabase } = await import("@/integrations/supabase/client");
+      supabaseClient = supabase;
+    }
+
     const suggestionInput = data.suggestion as TablesInsert<"suggestions">;
 
-    const { data: result, error } = await supabaseAdmin
+    const { data: result, error } = await supabaseClient
       .from("suggestions")
       .insert(suggestionInput)
       .select("id")
