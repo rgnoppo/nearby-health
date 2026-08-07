@@ -64,6 +64,9 @@ function AboutPage() {
             <p className="text-sm text-muted-foreground leading-relaxed">
               هذا الموقع هو عمل تطوعي، غير ربحي تماماً، ولا يحتوي على أي إعلانات مدفوعة أو اشتراكات. الهدف الوحيد هو التيسير على الناس ومساعدتهم في العثور على العيادات والأطباء بكل سهولة.
             </p>
+            <p className="mt-3 text-sm text-muted-foreground leading-relaxed border-t border-border/40 pt-3">
+              🤍 وهو كذلك صدقة جارية على روح والدي الشيخ سيد عبد الموجود، وأختي رحمها الله، وجميع أموات المسلمين. اللهم اغفر لهم وارحمهم وأسكنهم فسيح جناتك.
+            </p>
           </section>
 
           {/* Section 2: Data Source & Disclaimer */}

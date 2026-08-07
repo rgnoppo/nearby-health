@@ -11,6 +11,7 @@ import Plus from "lucide-react/dist/esm/icons/plus";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
 import X from "lucide-react/dist/esm/icons/x";
 import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
+import Hash from "lucide-react/dist/esm/icons/hash";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,20 @@ import {
   type Clinic,
   type Suggestion,
 } from "@/lib/clinic-api";
+
+/** Convert a UUID to the same short code shown to the user (e.g. REQ-8X29B) */
+function toRequestCode(uuid: string): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const hex = uuid.replace(/-/g, "").slice(0, 8);
+  const num = parseInt(hex, 16);
+  let code = "";
+  let n = num;
+  for (let i = 0; i < 5; i++) {
+    code = chars[n % chars.length] + code;
+    n = Math.floor(n / chars.length);
+  }
+  return `REQ-${code}`;
+}
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -509,7 +524,16 @@ function Dashboard() {
                   key={s.id}
                   className="rounded-2xl border border-border bg-card p-4 shadow-card"
                 >
-                  <h2 className="text-sm font-bold">{s.name}</h2>
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <h2 className="text-sm font-bold">{s.name}</h2>
+                    <span
+                      className="inline-flex items-center gap-1 rounded-lg bg-muted px-2 py-0.5 font-mono text-xs font-bold text-muted-foreground tracking-wider shrink-0"
+                      title="رقم الطلب المرجعي"
+                    >
+                      <Hash className="h-3 w-3" />
+                      {toRequestCode(s.id)}
+                    </span>
+                  </div>
                   <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                     <p>{s.address}</p>
                     <p className="font-medium text-accent-foreground">{s.landmark}</p>
@@ -553,12 +577,18 @@ function Dashboard() {
                   {handledSuggestions.map((s) => (
                     <li
                       key={s.id}
-                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-border bg-card px-3 py-2"
+                      className="rounded-xl border border-border bg-card px-3 py-2 space-y-1"
                     >
-                      <span className="min-w-0 truncate text-sm">{s.name}</span>
-                      <Badge variant={s.status === "approved" ? "default" : "secondary"}>
-                        {s.status === "approved" ? "مقبول" : "مرفوض"}
-                      </Badge>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-sm font-medium">{s.name}</span>
+                        <Badge variant={s.status === "approved" ? "default" : "secondary"}>
+                          {s.status === "approved" ? "مقبول" : "مرفوض"}
+                        </Badge>
+                      </div>
+                      <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-muted-foreground tracking-wider">
+                        <Hash className="h-3 w-3" />
+                        {toRequestCode(s.id)}
+                      </span>
                     </li>
                   ))}
                 </ul>

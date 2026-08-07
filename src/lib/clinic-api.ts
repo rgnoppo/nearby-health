@@ -72,9 +72,14 @@ export async function swapCategoryOrder(a: Category, b: Category) {
   if (e2) throw e2;
 }
 
-export async function submitSuggestion(input: TablesInsert<"suggestions">) {
-  const { error } = await supabase.from("suggestions").insert(input);
+export async function submitSuggestion(input: TablesInsert<"suggestions">): Promise<string> {
+  const { data, error } = await supabase
+    .from("suggestions")
+    .insert(input)
+    .select("id")
+    .single();
   if (error) throw error;
+  return data.id as string;
 }
 
 export async function fetchSuggestions(): Promise<Suggestion[]> {

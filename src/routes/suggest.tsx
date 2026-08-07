@@ -6,6 +6,10 @@ import Send from "lucide-react/dist/esm/icons/send";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
 import PlusCircle from "lucide-react/dist/esm/icons/plus-circle";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2";
+import CheckCircle from "lucide-react/dist/esm/icons/check-circle";
+import Copy from "lucide-react/dist/esm/icons/copy";
+import Check from "lucide-react/dist/esm/icons/check";
+import Home from "lucide-react/dist/esm/icons/home";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -59,12 +63,28 @@ const empty = {
   submitter_note: "",
 };
 
+/** Convert a UUID to a short human-readable code like REQ-8X29B */
+function toRequestCode(uuid: string): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const hex = uuid.replace(/-/g, "").slice(0, 8);
+  const num = parseInt(hex, 16);
+  let code = "";
+  let n = num;
+  for (let i = 0; i < 5; i++) {
+    code = chars[n % chars.length] + code;
+    n = Math.floor(n / chars.length);
+  }
+  return `REQ-${code}`;
+}
+
 function SuggestPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(empty);
   const [extraPhones, setExtraPhones] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showOptional, setShowOptional] = useState(false);
+  const [requestCode, setRequestCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const categories = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
 
   const mutation = useMutation({
@@ -78,12 +98,11 @@ function SuggestPage() {
       }
       setErrors({});
       const d = parsed.data;
-      // Build extra_phones array from non-empty extra phone fields (label is empty — admin assigns later)
       const extra = extraPhones
         .map((n) => n.trim())
         .filter(Boolean)
         .map((number) => ({ number, label: "" }));
-      await submitSuggestion({
+      const id = await submitSuggestion({
         name: d.name,
         address: d.address,
         landmark: d.landmark,
@@ -96,12 +115,10 @@ function SuggestPage() {
         submitter_note: d.submitter_note || null,
         status: "pending",
       });
+      return toRequestCode(id);
     },
-    onSuccess: () => {
-      toast.success("متشكرين! الاقتراح وصلنا وهنراجعه.");
-      setForm(empty);
-      setExtraPhones([]);
-      navigate({ to: "/" });
+    onSuccess: (code) => {
+      setRequestCode(code);
     },
     onError: (error) => {
       if (error.message === "invalid") {
@@ -115,6 +132,118 @@ function SuggestPage() {
   const set = (key: keyof typeof empty) => (value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const handleCopy = () => {
+    if (!requestCode) return;
+    navigator.clipboard.writeText(requestCode).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
+  };
+
+  /* ── Success Screen ── */
+  if (requestCode) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        {/* Top bar */}
+        <div className="sticky top-0 z-20 border-b border-border/60 bg-background/95 backdrop-blur-md">
+          <div className="mx-auto max-w-lg px-4 py-3 flex items-center">
+            <span className="font-display text-base font-bold">دليل العيادات</span>
+          </div>
+        </div>
+
+        <main className="mx-auto w-full max-w-lg px-4 flex-1 flex flex-col items-center justify-center py-12 gap-0">
+
+          {/* Icon */}
+          <div className="relative mb-6">
+            <div className="h-24 w-24 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <CheckCircle className="h-12 w-12 text-emerald-500" strokeWidth={1.5} />
+            </div>
+            {/* Pulse ring */}
+            <span className="absolute inset-0 rounded-full animate-ping bg-emerald-400/20 pointer-events-none" />
+          </div>
+
+          {/* Title & thanks */}
+          <h1 className="text-2xl font-extrabold text-center leading-snug">
+            تم إرسال الطلب بنجاح! 🎉
+          </h1>
+          <p className="mt-3 text-center text-base text-muted-foreground leading-relaxed max-w-[300px]">
+            جزاك الله خيراً على مساهمتك اللطيفة للتيسير على الناس.
+          </p>
+
+          {/* Request ID card */}
+          <div className="mt-8 w-full rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="px-5 py-3 bg-muted/40 border-b border-border/60">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                رقم الطلب المرجعي
+              </p>
+            </div>
+            <div className="px-5 py-4 flex items-center justify-between gap-3">
+              <span
+                className="font-mono text-2xl font-black tracking-widest text-foreground select-all"
+                dir="ltr"
+              >
+                {requestCode}
+              </span>
+              <button
+                onClick={handleCopy}
+                aria-label="نسخ رقم الطلب"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-200",
+                  copied
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/70 active:scale-95",
+                )}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    تم النسخ
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    نسخ الرقم
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Screenshot reminder */}
+          <div className="mt-4 w-full rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/30 px-5 py-4">
+            <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
+              💡 يرجى أخذ لقطة شاشة <strong>(Screenshot)</strong> أو حفظ هذا الرقم احترازيًا — ستحتاجه عند التواصل مع الأدمن بخصوص طلبك.
+            </p>
+          </div>
+
+          {/* CTA */}
+          <div className="mt-8 w-full flex flex-col gap-3">
+            <Link
+              to="/"
+              className="flex items-center justify-center gap-2 h-14 w-full rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-md shadow-primary/25 hover:opacity-90 transition-opacity"
+            >
+              <Home className="h-5 w-5" />
+              تصفح العيادات
+            </Link>
+            <button
+              onClick={() => {
+                setRequestCode(null);
+                setForm(empty);
+                setExtraPhones([]);
+              }}
+              className="flex items-center justify-center gap-2 h-12 w-full rounded-2xl bg-secondary text-secondary-foreground font-semibold text-sm hover:bg-secondary/70 transition-colors"
+            >
+              إضافة عيادة أخرى
+            </button>
+          </div>
+        </main>
+
+        <SiteFooter />
+      </div>
+    );
+  }
+
+  /* ── Normal Form ── */
   return (
     <div className="min-h-screen flex flex-col">
       {/* ── Back bar ── */}
@@ -173,8 +302,6 @@ function SuggestPage() {
               />
             </Field>
 
-
-
             <Field label="رقم التليفون" required error={errors["phone"]}>
               <Input
                 value={form.phone}
@@ -187,7 +314,7 @@ function SuggestPage() {
               />
             </Field>
 
-            {/* Extra phones — no labels (admin assigns later) */}
+            {/* Extra phones */}
             <div className="space-y-3">
               <p className="text-sm font-bold">
                 أرقام إضافية
