@@ -352,3 +352,11 @@
   min-height: 196px;
 }
 
+/* ============================================================
+   SONNER — force top-center on RTL pages
+   ============================================================ */
+[data-sonner-toaster][data-position="top-center"] {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+}

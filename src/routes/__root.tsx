@@ -141,7 +141,7 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Suspense fallback={null}>
-        <Toaster position="top-center" />
+        <Toaster />
       </Suspense>
     </QueryClientProvider>
   );

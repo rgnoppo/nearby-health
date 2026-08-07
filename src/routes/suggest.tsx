@@ -458,12 +458,16 @@ function SuggestPage() {
             )}
           </div>
 
-          <div className="flex justify-center my-4">
+          <div className="flex justify-center w-full my-3">
             <Turnstile
               siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
               onSuccess={(token) => setTurnstileToken(token)}
               onError={() => setTurnstileToken("")}
               onExpire={() => setTurnstileToken("")}
+              options={{
+                theme: "light",
+                appearance: "always",
+              }}
             />
           </div>
 
