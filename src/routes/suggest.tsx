@@ -111,19 +111,21 @@ function SuggestPage() {
       }
 
       const id = await submitSuggestionSecure({
-        token: turnstileToken,
-        suggestion: {
-          name: d.name,
-          address: d.address,
-          landmark: d.landmark,
-          phone: d.phone,
-          extra_phones: extra.length > 0 ? extra : null,
-          category_id: d.category_id || null,
-          specialty: d.specialty || null,
-          whatsapp: d.whatsapp || null,
-          working_hours: d.working_hours || null,
-          submitter_note: d.submitter_note || null,
-          status: "pending",
+        data: {
+          token: turnstileToken,
+          suggestion: {
+            name: d.name,
+            address: d.address,
+            landmark: d.landmark,
+            phone: d.phone,
+            extra_phones: extra.length > 0 ? extra : null,
+            category_id: d.category_id || null,
+            specialty: d.specialty || null,
+            whatsapp: d.whatsapp || null,
+            working_hours: d.working_hours || null,
+            submitter_note: d.submitter_note || null,
+            status: "pending",
+          }
         }
       });
       return toRequestCode(id);
