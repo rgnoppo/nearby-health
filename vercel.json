@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/s/:type/:id",
+      "destination": "https://hhztqmhfjrmrztgvmrkd.supabase.co/functions/v1/share?type=:type&id=:id"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
