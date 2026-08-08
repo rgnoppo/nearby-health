@@ -1,87 +1,41 @@
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
+import { getApiOrigin } from "@/lib/api-base";
 import type { TablesInsert } from "@/integrations/supabase/types";
 
-// ─── Turnstile verification ───────────────────────────────────────────────────
-const verifyTurnstile = async (token: string, ip?: string) => {
-  const secretKey = process.env.TURNSTILE_SECRET_KEY || process.env.VITE_TURNSTILE_SECRET_KEY;
-  if (!secretKey) {
-    console.warn("[Turnstile] TURNSTILE_SECRET_KEY is missing — skipping verification (dev mode).");
-    return true;
-  }
-
-  const formData = new FormData();
-  formData.append("secret", secretKey);
-  formData.append("response", token);
-  if (ip) formData.append("remoteip", ip);
-
-  let cfRes: Response;
-  try {
-    cfRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      body: formData,
-    });
-  } catch (networkErr) {
-    console.error("[Turnstile] Network error contacting Cloudflare siteverify:", networkErr);
-    return false;
-  }
-
-  if (!cfRes.ok) {
-    console.error(`[Turnstile] Cloudflare siteverify returned HTTP ${cfRes.status}`);
-    return false;
-  }
-
-  const cfData = await cfRes.json();
-  if (!cfData.success) {
-    console.error("[Turnstile] Verification failed. Cloudflare error-codes:", cfData["error-codes"]);
-  }
-  return cfData.success === true;
+type SubmitSuggestionInput = {
+  token: string;
+  suggestion: TablesInsert<"suggestions">;
 };
 
-// ─── Input schema ─────────────────────────────────────────────────────────────
-const inputSchema = z.object({
-  token: z.string().min(1, "Turnstile token is missing"),
-  suggestion: z.any(),
-});
-
-// ─── Server function ──────────────────────────────────────────────────────────
-export const submitSuggestionSecure = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => inputSchema.parse(data))
-  .handler(async ({ data }) => {
-    // 1. Verify the Turnstile token first
-    const isHuman = await verifyTurnstile(data.token);
-    if (!isHuman) {
-      throw new Error("Turnstile verification failed. Please try again.");
-    }
-
-    // 2. Use the SERVICE-ROLE admin client if available, otherwise fallback to anon client
-    let supabaseClient;
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      supabaseClient = supabaseAdmin;
-    } else {
-      console.warn("[Supabase] SUPABASE_SERVICE_ROLE_KEY is missing in environment. Falling back to anon client.");
-      const { supabase } = await import("@/integrations/supabase/client");
-      supabaseClient = supabase;
-    }
-
-    const suggestionInput = data.suggestion as TablesInsert<"suggestions">;
-
-    const { data: result, error } = await supabaseClient
-      .from("suggestions")
-      .insert(suggestionInput)
-      .select("id")
-      .single();
-
-    if (error) {
-      console.error("[Supabase] suggestions.insert error:", {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-      });
-      throw new Error(error.message ?? "Could not submit suggestion");
-    }
-
-    return result.id as string;
+// Plain HTTP call to the `/api/suggest` server route (see
+// src/routes/api/suggest.ts) rather than a TanStack Start server-function
+// RPC. Server functions enforce a same-origin check, which the packaged
+// Capacitor app (origin `capacitor://localhost`) can never pass — see the
+// comment at the top of src/routes/api/suggest.ts for the full reasoning.
+//
+// On the web build `getApiOrigin()` returns "", so this is a normal
+// same-origin fetch exactly like before. On the native build it resolves to
+// the deployed Vercel origin.
+export async function submitSuggestionSecure({
+  data,
+}: {
+  data: SubmitSuggestionInput;
+}): Promise<string> {
+  const res = await fetch(`${getApiOrigin()}/api/suggest`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(data),
   });
+
+  let payload: { id?: string; error?: string } | null = null;
+  try {
+    payload = await res.json();
+  } catch {
+    // no/invalid JSON body — fall through to the !res.ok handling below
+  }
+
+  if (!res.ok || !payload?.id) {
+    throw new Error(payload?.error ?? "Could not submit suggestion");
+  }
+
+  return payload.id;
+}

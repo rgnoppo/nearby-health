@@ -15,6 +15,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as SuggestRouteImport } from './routes/suggest'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as ApiSuggestRouteImport } from './routes/api/suggest'
 import { Route as ClinicClinicIdRouteImport } from './routes/clinic.$clinicId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -46,6 +47,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiSuggestRoute = ApiSuggestRouteImport.update({
+  id: '/api/suggest',
+  path: '/api/suggest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClinicClinicIdRoute = ClinicClinicIdRouteImport.update({
   id: '/clinic/$clinicId',
   path: '/clinic/$clinicId',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/suggest': typeof SuggestRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/api/suggest': typeof ApiSuggestRoute
   '/clinic/$clinicId': typeof ClinicClinicIdRoute
 }
 export interface FileRoutesByTo {
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/suggest': typeof SuggestRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/api/suggest': typeof ApiSuggestRoute
   '/clinic/$clinicId': typeof ClinicClinicIdRoute
 }
 export interface FileRoutesById {
@@ -76,15 +84,28 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/suggest': typeof SuggestRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/api/suggest': typeof ApiSuggestRoute
   '/clinic/$clinicId': typeof ClinicClinicIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/about' | '/admin' | '/suggest' | '/dashboard' | '/clinic/$clinicId'
+    | '/'
+    | '/about'
+    | '/admin'
+    | '/suggest'
+    | '/dashboard'
+    | '/api/suggest'
+    | '/clinic/$clinicId'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/about' | '/admin' | '/suggest' | '/dashboard' | '/clinic/$clinicId'
+    | '/'
+    | '/about'
+    | '/admin'
+    | '/suggest'
+    | '/dashboard'
+    | '/api/suggest'
+    | '/clinic/$clinicId'
   id:
     | '__root__'
     | '/'
@@ -93,6 +114,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/suggest'
     | '/_authenticated/dashboard'
+    | '/api/suggest'
     | '/clinic/$clinicId'
   fileRoutesById: FileRoutesById
 }
@@ -102,6 +124,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
   SuggestRoute: typeof SuggestRoute
+  ApiSuggestRoute: typeof ApiSuggestRoute
   ClinicClinicIdRoute: typeof ClinicClinicIdRoute
 }
 
@@ -149,6 +172,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/suggest': {
+      id: '/api/suggest'
+      path: '/api/suggest'
+      fullPath: '/api/suggest'
+      preLoaderRoute: typeof ApiSuggestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clinic/$clinicId': {
       id: '/clinic/$clinicId'
       path: '/clinic/$clinicId'
@@ -176,6 +206,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
   SuggestRoute: SuggestRoute,
+  ApiSuggestRoute: ApiSuggestRoute,
   ClinicClinicIdRoute: ClinicClinicIdRoute,
 }
 export const routeTree = rootRouteImport

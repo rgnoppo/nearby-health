@@ -24,6 +24,9 @@ const dest = resolve(root, "src/routes.capacitor");
 const EXCLUDE = new Set([
   "admin.tsx",
   "_authenticated", // whole directory: dashboard.tsx + route.tsx (auth guard)
+  "api", // server routes (e.g. api/suggest.ts) — server-only handlers with
+  // Supabase service-role access; the native app calls these over HTTPS on
+  // the deployed origin instead, they must never enter the APK's bundle.
 ]);
 
 function copyFiltered(currentSrc, currentDest, relBase = "") {

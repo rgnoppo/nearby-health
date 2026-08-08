@@ -5,7 +5,7 @@
       "destination": "https://hhztqmhfjrmrztgvmrkd.supabase.co/functions/v1/share?type=:type&id=:id"
     },
     {
-      "source": "/((?!_server/).*)",
+      "source": "/((?!_server/|api/).*)",
       "destination": "/index.html"
     }
   ],
