@@ -66,9 +66,14 @@ const empty = {
 };
 
 /** Convert a UUID to a short human-readable code like REQ-8X29B */
-function toRequestCode(uuid: string): string {
+function toRequestCode(uuid: unknown): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const hex = uuid.replace(/-/g, "").slice(0, 8);
+  // Guard: in WebView/APK environments Supabase may return a non-string id
+  // (e.g. undefined, null, or a serialised object). Normalise defensively.
+  const safeUuid = Array.isArray(uuid)
+    ? uuid.join("")
+    : String(uuid ?? "");
+  const hex = safeUuid.replace(/-/g, "").slice(0, 8);
   const num = parseInt(hex, 16);
   let code = "";
   let n = num;
@@ -128,6 +133,13 @@ function SuggestPage() {
           }
         }
       });
+      // Extra safety: ensure id is truthy before converting to a code.
+      // In some APK/WebView network edge-cases the response may deserialise
+      // with a missing or non-string id field.
+      if (!id || typeof id !== "string") {
+        console.warn("[Suggestion] Unexpected id type from server:", id, typeof id);
+        return toRequestCode(String(id ?? ""));
+      }
       return toRequestCode(id);
     },
     onSuccess: (code) => {
