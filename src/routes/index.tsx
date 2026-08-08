@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import Fuse from "fuse.js";
 import Search from "lucide-react/dist/esm/icons/search";
 import SlidersHorizontal from "lucide-react/dist/esm/icons/sliders-horizontal";
 import PlusCircle from "lucide-react/dist/esm/icons/plus-circle";
@@ -11,11 +10,11 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { ClinicCard } from "@/components/ClinicCard";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchCategories, fetchClinics } from "@/lib/clinic-api";
+import { fetchCategories } from "@/lib/clinic-api";
 import { cn } from "@/lib/utils";
-import { useProgressiveReveal } from "@/hooks/useProgressiveReveal";
+import { useInfiniteClinicScroll } from "@/hooks/useInfiniteClinicScroll";
 
-export const Route = createFileRoute("/")(({
+export const Route = createFileRoute("/")((({
   validateSearch: (search: Record<string, unknown>) => {
     return {
       category: search.category as string | undefined,
@@ -37,7 +36,7 @@ export const Route = createFileRoute("/")(({
     ],
   }),
   component: Home,
-}) as any);
+}) as any));
 
 import { useNavigate } from "@tanstack/react-router";
 import { ShareButton } from "@/components/ShareButton";
@@ -46,13 +45,13 @@ function Home() {
   const [term, setTerm] = useState("");
   const { category: activeCategoryParam } = Route.useSearch();
   const navigate = useNavigate({ from: Route.id });
-  
+
   const activeCategory = activeCategoryParam || null;
   const setActiveCategory = (id: string | null) => {
     navigate({ search: (prev: any) => ({ ...prev, category: id || undefined }) });
   };
 
-  const clinics = useQuery({ queryKey: ["clinics"], queryFn: fetchClinics });
+  // Categories are lightweight — fetch once, cache for the session
   const categories = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
 
   const categoryNames = useMemo(() => {
@@ -61,36 +60,23 @@ function Home() {
     return map;
   }, [categories.data]);
 
-  const filtered = useMemo(() => {
-    const q = term.trim();
-    let list = clinics.data ?? [];
-    if (activeCategory) list = list.filter((c) => c.category_id === activeCategory);
-    if (!q) return list;
-    const searchData = list.map((c) => ({
-      ...c,
-      categoryName: categoryNames.get(c.category_id ?? "") || "",
-    }));
-    const fuse = new Fuse(searchData, {
-      keys: ["name", "specialty", "address", "landmark", "categoryName"],
-      threshold: 0.3,
-      ignoreLocation: true,
-    });
-    return fuse.search(q).map((res) => res.item);
-  }, [clinics.data, term, activeCategory, categoryNames]);
+  const visibleCategories = useMemo(() => {
+    return (categories.data ?? []);
+  }, [categories.data]);
 
-  const counts = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const c of clinics.data ?? []) {
-      if (!c.category_id) continue;
-      map.set(c.category_id, (map.get(c.category_id) ?? 0) + 1);
-    }
-    return map;
-  }, [clinics.data]);
-
-  const visibleCategories = (categories.data ?? []).filter((c) => (counts.get(c.id) ?? 0) > 0);
-
-  // Progressive reveal — show 5 at a time, load more on scroll
-  const { visibleCount, hasMore, sentinelRef } = useProgressiveReveal(filtered.length);
+  // Server-side paginated infinite scroll — no full-list download
+  const {
+    clinics,
+    isLoading,
+    isFetchingMore,
+    isError,
+    totalCount,
+    hasMore,
+    sentinelRef,
+  } = useInfiniteClinicScroll({
+    search: term,
+    categoryId: activeCategory,
+  });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -145,7 +131,7 @@ function Home() {
                   active={activeCategory === null}
                   onClick={() => setActiveCategory(null)}
                   label="الكل"
-                  count={(clinics.data ?? []).length}
+                  count={null}
                 />
                 {visibleCategories.map((c) => (
                   <FilterChip
@@ -154,7 +140,7 @@ function Home() {
                     active={activeCategory === c.id}
                     onClick={() => setActiveCategory(activeCategory === c.id ? null : c.id)}
                     label={c.name}
-                    count={counts.get(c.id) ?? 0}
+                    count={null}
                   />
                 ))}
               </div>
@@ -163,23 +149,23 @@ function Home() {
         ) : null}
 
         {/* ── Results count ── */}
-        {!clinics.isLoading && !clinics.isError && filtered.length > 0 && (
+        {!isLoading && !isError && totalCount > 0 && (
           <p className="mt-4 mb-1 text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{filtered.length}</span> عيادة
+            <span className="font-semibold text-foreground">{totalCount}</span> عيادة
             {activeCategory ? ` في ${categoryNames.get(activeCategory) ?? "التخصص"}` : ""}
             {term.trim() ? ` تطابق "${term.trim()}"` : ""}
           </p>
         )}
 
-        {/* ── Clinic List — min-h reserves space to eliminate CLS during loading ── */}
+        {/* ── Clinic List ── */}
         <section className="mt-3 space-y-3 min-h-[20rem]" aria-label="قايمة العيادات">
-          {clinics.isLoading ? (
-          <>
+          {isLoading ? (
+            <>
               <div className="clinic-skeleton"><ClinicSkeleton /></div>
               <div className="clinic-skeleton"><ClinicSkeleton /></div>
               <div className="clinic-skeleton"><ClinicSkeleton /></div>
             </>
-          ) : clinics.isError ? (
+          ) : isError ? (
             <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 text-center">
               <p className="text-base font-semibold text-destructive">
                 مقدرناش نجيب قايمة العيادات
@@ -188,7 +174,7 @@ function Home() {
                 حدّث الصفحة وجرّب تاني.
               </p>
             </div>
-          ) : filtered.length === 0 ? (
+          ) : clinics.length === 0 ? (
             <div className="rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-8 text-center">
               <p className="text-base font-semibold text-foreground">
                 مفيش عيادة مطابقة للبحث
@@ -205,7 +191,7 @@ function Home() {
               </Link>
             </div>
           ) : (
-            filtered.slice(0, visibleCount).map((clinic) => (
+            clinics.map((clinic) => (
               <div key={clinic.id} className="clinic-card-item">
                 <ClinicCard
                   clinic={clinic}
@@ -218,13 +204,13 @@ function Home() {
           {/* Sentinel — triggers loading more when it enters the viewport */}
           {hasMore && (
             <div ref={sentinelRef} className="space-y-3">
-              <ClinicSkeleton />
+              {isFetchingMore && <ClinicSkeleton />}
             </div>
           )}
         </section>
 
         {/* ── Footer CTA ── */}
-        {!clinics.isLoading && !clinics.isError && filtered.length > 0 && (
+        {!isLoading && !isError && clinics.length > 0 && (
           <div className="mt-8 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 p-5 text-center">
             <p className="text-base font-semibold text-foreground">شايف عيادة ناقصة؟</p>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -294,7 +280,7 @@ function FilterChip({
   active: boolean;
   onClick: () => void;
   label: string;
-  count: number;
+  count: number | null;
   id?: string;
 }) {
   return (
@@ -313,14 +299,16 @@ function FilterChip({
         className="flex h-full items-center gap-2 px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded-full transition-colors duration-300"
       >
         <span>{label}</span>
-        <span
-          className={cn(
-            "inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[13px] font-bold tabular-nums transition-colors duration-300",
-            active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-secondary text-muted-foreground"
-          )}
-        >
-          {count}
-        </span>
+        {count !== null && (
+          <span
+            className={cn(
+              "inline-flex items-center justify-center rounded-md px-1.5 py-0.5 text-[13px] font-bold tabular-nums transition-colors duration-300",
+              active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-secondary text-muted-foreground"
+            )}
+          >
+            {count}
+          </span>
+        )}
       </button>
       {id ? (
         <div
@@ -330,12 +318,12 @@ function FilterChip({
           )}
         >
           <div className="shrink-0 flex items-center justify-center w-10">
-            <ShareButton 
-              id={id} 
-              name={label} 
-              type="category" 
-              variant="icon" 
-              className="h-8 w-8 !bg-transparent !text-primary-foreground hover:!bg-primary-foreground/20 rounded-full" 
+            <ShareButton
+              id={id}
+              name={label}
+              type="category"
+              variant="icon"
+              className="h-8 w-8 !bg-transparent !text-primary-foreground hover:!bg-primary-foreground/20 rounded-full"
             />
           </div>
         </div>

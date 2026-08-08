@@ -7,14 +7,53 @@ export type Category = Tables<"categories">;
 export type ClinicInput = TablesInsert<"clinics">;
 export type ClinicPatch = TablesUpdate<"clinics">;
 
-export async function fetchClinics(): Promise<Clinic[]> {
-  const { data, error } = await supabase
+export const CLINICS_PAGE_SIZE = 10;
+
+export interface FetchClinicsParams {
+  page: number;          // 0-indexed
+  search?: string;       // free-text search
+  categoryId?: string;   // filter by category
+}
+
+export interface FetchClinicsResult {
+  data: Clinic[];
+  totalCount: number;
+  hasMore: boolean;
+}
+
+export async function fetchClinics(
+  { page, search, categoryId }: FetchClinicsParams = { page: 0 }
+): Promise<FetchClinicsResult> {
+  const from = page * CLINICS_PAGE_SIZE;
+  const to   = from + CLINICS_PAGE_SIZE - 1;
+
+  let query = supabase
     .from("clinics")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .range(from, to);
+
+  if (categoryId) {
+    query = query.eq("category_id", categoryId);
+  }
+
+  if (search && search.trim()) {
+    const q = search.trim();
+    query = query.or(
+      `name.ilike.%${q}%,specialty.ilike.%${q}%,address.ilike.%${q}%,landmark.ilike.%${q}%`
+    );
+  }
+
+  const { data, error, count } = await query;
   if (error) throw error;
-  return data ?? [];
+
+  const totalCount = count ?? 0;
+  return {
+    data: data ?? [],
+    totalCount,
+    hasMore: from + CLINICS_PAGE_SIZE < totalCount,
+  };
 }
 
 export async function fetchClinic(id: string): Promise<Clinic | null> {
