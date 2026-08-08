@@ -18,9 +18,11 @@ import type { TablesInsert } from "@/integrations/supabase/types";
 // unauthenticated POSTs that write to the database, and a wildcard would
 // let any website's JS submit (spam) suggestions using a visitor's browser.
 const DEFAULT_ALLOWED_ORIGINS = [
-  "capacitor://localhost", // packaged Android/iOS app (production)
-  "http://localhost", // Capacitor native dev / emulator
+  "capacitor://localhost", // packaged Android/iOS app — capacitor:// scheme
+  "https://localhost",     // packaged Android app when androidScheme:"https" (Capacitor ≥ 4)
+  "http://localhost",      // Capacitor native dev / emulator (http fallback)
   "http://localhost:3000", // Capacitor live-reload dev server
+  "https://localhost:3000",// Capacitor live-reload dev server (https variant)
 ];
 
 function getAllowedOrigins(): string[] {
