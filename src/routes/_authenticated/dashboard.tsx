@@ -88,7 +88,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isAdmin = useIsAdmin();
-  const clinics = useQuery({ queryKey: ["clinics"], queryFn: fetchClinics });
+  const clinics = useQuery({ queryKey: ["clinics"], queryFn: () => fetchClinics() });
   const categories = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
   const suggestions = useQuery({
     queryKey: ["suggestions"],
@@ -252,7 +252,7 @@ function Dashboard() {
     );
   }
 
-  const list = Array.isArray(clinics.data) ? clinics.data : [];
+  const list = clinics.data?.data || [];
   const categoryList = Array.isArray(categories.data) ? categories.data : [];
   const categoryNames = new Map(categoryList.map((c) => [c.id, c.name] as const));
   const safeSuggestions = Array.isArray(suggestions.data) ? suggestions.data : [];
