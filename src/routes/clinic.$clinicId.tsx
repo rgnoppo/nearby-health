@@ -135,7 +135,12 @@ function ClinicDetail() {
           >
             <Row icon={<MapPin className="h-5 w-5" />} label="العنوان" value={c.address} />
           </a>
-          <Row icon={<Clock className="h-5 w-5" />} label="مواعيد الشغل" value={c.working_hours} />
+          <Row 
+            icon={<Clock className="h-5 w-5" />} 
+            label="مواعيد الشغل" 
+            value={c.working_hours} 
+            subtext="* المواعيد قابلة للتغيير حسب ظروف العيادة، يفضل التأكد هاتفياً قبل الذهاب."
+          />
           <Row icon={<Phone className="h-5 w-5" />} label="التليفون" value={c.phone} ltr />
           {c.notes ? (
             <Row icon={<Info className="h-5 w-5" />} label="معلومة تفيدك" value={c.notes} />
@@ -236,11 +241,13 @@ function Row({
   label,
   value,
   ltr,
+  subtext,
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: React.ReactNode;
   ltr?: boolean;
+  subtext?: React.ReactNode;
 }) {
   return (
     <div className="flex min-w-0 items-start gap-3">
@@ -249,12 +256,14 @@ function Row({
         <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase mb-0.5">
           {label}
         </p>
-        <p
-          dir={ltr ? "ltr" : undefined}
-          className={"text-base leading-snug" + (ltr ? " text-start font-semibold" : "")}
-        >
+        <p dir={ltr ? "ltr" : undefined} className={`text-sm font-semibold leading-relaxed text-foreground ${ltr ? "text-right" : ""}`}>
           {value}
         </p>
+        {subtext && (
+          <p className="text-xs text-muted-foreground font-normal mt-1">
+            {subtext}
+          </p>
+        )}
       </div>
     </div>
   );
