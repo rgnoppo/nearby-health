@@ -133,7 +133,7 @@ function ClinicDetail() {
             rel="noopener noreferrer"
             className="block transition-opacity hover:opacity-80 -mx-2 px-2 py-1 rounded-lg"
           >
-            <Row icon={<MapPin className="h-5 w-5" />} label="العنوان" value={c.address} />
+            <Row icon={<MapPin className="h-5 w-5" />} label="العنوان" value={c.address} subtext="اضغط لفتح العنوان على Google Map (قد يكون اللوكيشن على الخريطة غير دقيق)" />
           </a>
           <Row 
             icon={<Clock className="h-5 w-5" />} 
