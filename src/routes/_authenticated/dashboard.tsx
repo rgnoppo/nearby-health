@@ -24,6 +24,7 @@ import {
   emptyClinicForm,
   type ClinicFormValues,
 } from "@/components/admin/ClinicForm";
+import { TwoFactorSettings } from "@/components/admin/TwoFactorSettings";
 import {
   createCategory,
   createClinic,
@@ -251,11 +252,12 @@ function Dashboard() {
     );
   }
 
-  const list = clinics.data ?? [];
-  const categoryList = categories.data ?? [];
+  const list = Array.isArray(clinics.data) ? clinics.data : [];
+  const categoryList = Array.isArray(categories.data) ? categories.data : [];
   const categoryNames = new Map(categoryList.map((c) => [c.id, c.name] as const));
-  const pendingSuggestions = (suggestions.data ?? []).filter((s) => s.status === "pending");
-  const handledSuggestions = (suggestions.data ?? []).filter((s) => s.status !== "pending");
+  const safeSuggestions = Array.isArray(suggestions.data) ? suggestions.data : [];
+  const pendingSuggestions = safeSuggestions.filter((s) => s.status === "pending");
+  const handledSuggestions = safeSuggestions.filter((s) => s.status !== "pending");
 
   return (
     <div className="min-h-screen pb-16">
@@ -280,15 +282,16 @@ function Dashboard() {
 
       <main className="mx-auto max-w-lg px-4 pt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 rounded-xl">
-            <TabsTrigger value="clinics">العيادات</TabsTrigger>
-            <TabsTrigger value="categories">الأقسام</TabsTrigger>
-            <TabsTrigger value="suggestions">
+            <TabsList className="grid w-full grid-cols-4 rounded-xl">
+              <TabsTrigger value="clinics">العيادات</TabsTrigger>
+              <TabsTrigger value="categories">الأقسام</TabsTrigger>
+              <TabsTrigger value="suggestions">
               الاقتراحات
               {pendingSuggestions.length > 0 ? (
                 <Badge className="ms-1.5">{pendingSuggestions.length}</Badge>
               ) : null}
             </TabsTrigger>
+            <TabsTrigger value="security">الحماية</TabsTrigger>
           </TabsList>
 
           <TabsContent value="clinics" className="mt-4 space-y-3">
@@ -594,6 +597,10 @@ function Dashboard() {
                 </ul>
               </section>
             ) : null}
+          </TabsContent>
+
+          <TabsContent value="security" className="mt-4 space-y-3">
+            <TwoFactorSettings />
           </TabsContent>
         </Tabs>
       </main>
