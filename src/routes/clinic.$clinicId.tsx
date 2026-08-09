@@ -260,7 +260,7 @@ function Row({
           {value}
         </p>
         {subtext && (
-          <p className="text-xs text-muted-foreground font-normal mt-1">
+          <p className="text-xs text-muted-foreground/70 font-normal mt-1">
             {subtext}
           </p>
         )}
