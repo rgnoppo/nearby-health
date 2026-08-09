@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as DownloadRouteImport } from './routes/download'
 import { Route as SuggestRouteImport } from './routes/suggest'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as ApiSuggestRouteImport } from './routes/api/suggest'
@@ -35,6 +36,11 @@ const AboutRoute = AboutRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SuggestRoute = SuggestRouteImport.update({
@@ -62,6 +68,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/download': typeof DownloadRoute
   '/suggest': typeof SuggestRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/api/suggest': typeof ApiSuggestRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/download': typeof DownloadRoute
   '/suggest': typeof SuggestRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/api/suggest': typeof ApiSuggestRoute
@@ -82,6 +90,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/download': typeof DownloadRoute
   '/suggest': typeof SuggestRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/api/suggest': typeof ApiSuggestRoute
@@ -93,6 +102,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/download'
     | '/suggest'
     | '/dashboard'
     | '/api/suggest'
@@ -102,6 +112,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/download'
     | '/suggest'
     | '/dashboard'
     | '/api/suggest'
@@ -112,6 +123,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/admin'
+    | '/download'
     | '/suggest'
     | '/_authenticated/dashboard'
     | '/api/suggest'
@@ -123,6 +135,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
+  DownloadRoute: typeof DownloadRoute
   SuggestRoute: typeof SuggestRoute
   ApiSuggestRoute: typeof ApiSuggestRoute
   ClinicClinicIdRoute: typeof ClinicClinicIdRoute
@@ -156,6 +169,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/suggest': {
@@ -205,6 +225,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
+  DownloadRoute: DownloadRoute,
   SuggestRoute: SuggestRoute,
   ApiSuggestRoute: ApiSuggestRoute,
   ClinicClinicIdRoute: ClinicClinicIdRoute,

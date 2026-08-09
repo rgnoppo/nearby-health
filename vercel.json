@@ -5,11 +5,28 @@
       "destination": "https://hhztqmhfjrmrztgvmrkd.supabase.co/functions/v1/share?type=:type&id=:id"
     },
     {
-      "source": "/((?!_server/|api/).*)",
+      "source": "/((?!_server/|api/|downloads/).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/downloads/:file",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/vnd.android.package-archive"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"nearby-health.apk\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [
