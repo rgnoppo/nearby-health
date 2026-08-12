@@ -228,30 +228,20 @@ function Dashboard() {
       const body = notifBody.trim();
       if (!title || !body) throw new Error("العنوان والنص مطلوبين.");
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      if (!accessToken) throw new Error("غير مسجّل دخول.");
-
-      const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] as string;
-      const fnUrl = `${supabaseUrl}/functions/v1/send-notification`;
-
       const payload: { title: string; body: string; destination?: string } = { title, body };
       if (notifDest.trim()) payload.destination = notifDest.trim();
 
-      const res = await fetch(fnUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(payload),
+      const { data, error } = await supabase.functions.invoke("send-notification", {
+        body: payload,
       });
 
-      const json = await res.json() as { ok?: boolean; sent?: number; devices?: number; error?: string };
-      if (!res.ok || !json.ok) {
-        throw new Error(json.error ?? `FCM error (${res.status})`);
+      if (error) {
+        throw new Error(error.message || "مقدرناش نبعت الإشعار.");
       }
-      return json;
+      if (!data?.ok) {
+        throw new Error(data?.error || "FCM error");
+      }
+      return data as { ok: boolean; sent: number; devices: number };
     },
     onSuccess: (data) => {
       toast.success(`تم إرسال الإشعار. وصل لـ ${data.sent ?? 0} جهاز.`);

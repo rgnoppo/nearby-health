@@ -17,7 +17,7 @@
 //      to the validated destination using the TanStack router.
 
 import { useEffect, useRef } from "react";
-import { Capacitor } from "@capacitor/core";
+import { useIsNativeApp } from "@/hooks/useCapacitor";
 import { useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -72,12 +72,13 @@ let pendingDestination: string | null = null;
 // ---------------------------------------------------------------------------
 export function usePushNotifications(): void {
   const router = useRouter();
+  const isNative = useIsNativeApp();
   // Prevent registering listeners more than once (React StrictMode double-invoke).
   const initialized = useRef(false);
 
   useEffect(() => {
     // Guard: only run inside the native Capacitor app.
-    if (!Capacitor.isNativePlatform()) return;
+    if (!isNative) return;
     if (initialized.current) return;
     initialized.current = true;
 

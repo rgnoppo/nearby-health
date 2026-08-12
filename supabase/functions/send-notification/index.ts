@@ -214,10 +214,9 @@ Deno.serve(async (req: Request) => {
 
     // Verify the user JWT with the anon-key client (respects RLS).
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data: userData, error: userError } = await supabaseUser.auth.getUser();
+    const { data: userData, error: userError } = await supabaseUser.auth.getUser(token);
     if (userError || !userData.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
