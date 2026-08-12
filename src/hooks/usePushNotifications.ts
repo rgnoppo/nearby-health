@@ -46,11 +46,15 @@ function isValidDestination(dest: unknown): dest is string {
 // Supabase token registration
 // ---------------------------------------------------------------------------
 async function registerTokenWithSupabase(token: string): Promise<void> {
+  console.log("[PUSH DEBUG] registering token with Supabase");
   const { error } = await supabase.rpc("register_device_token", { fcm_token: token });
 
   if (error) {
+    console.log("[PUSH DEBUG] RPC error:", error.message);
     // Log without printing the full token value.
     console.warn("[PushNotifications] Token registration failed:", error.message);
+  } else {
+    console.log("[PUSH DEBUG] RPC result: success");
   }
 }
 
@@ -78,6 +82,7 @@ export function usePushNotifications(): void {
 
     (async () => {
       try {
+        console.log("[PUSH DEBUG] native detection: ", isNative);
         const PushNotifications = await getPushPlugin();
 
         // -------------------------------------------------------------------
@@ -94,6 +99,8 @@ export function usePushNotifications(): void {
           finalStatus = result.receive;
         }
 
+        console.log("[PUSH DEBUG] permission result: ", finalStatus);
+
         // If the user denied, bail out gracefully — app still works normally.
         if (finalStatus !== "granted") {
           console.log("[PushNotifications] Permission not granted; skipping registration.");
@@ -106,6 +113,7 @@ export function usePushNotifications(): void {
         const regListener = await PushNotifications.addListener(
           "registration",
           async (tokenData) => {
+            console.log("[PUSH DEBUG] FCM registration token received, length: ", tokenData.value?.length);
             await registerTokenWithSupabase(tokenData.value);
           },
         );
@@ -117,6 +125,7 @@ export function usePushNotifications(): void {
         const regErrListener = await PushNotifications.addListener(
           "registrationError",
           (err) => {
+            console.log("[PUSH DEBUG] registration error:", err.error);
             console.warn("[PushNotifications] Registration error:", err.error);
           },
         );
@@ -178,6 +187,7 @@ export function usePushNotifications(): void {
         // Register with FCM (triggers the `registration` event).
         // MUST be called AFTER listeners are attached to avoid race conditions.
         // -------------------------------------------------------------------
+        console.log("[PUSH DEBUG] registration started");
         await PushNotifications.register();
 
         // -------------------------------------------------------------------
