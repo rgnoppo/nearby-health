@@ -46,15 +46,7 @@ function isValidDestination(dest: unknown): dest is string {
 // Supabase token registration
 // ---------------------------------------------------------------------------
 async function registerTokenWithSupabase(token: string): Promise<void> {
-  // Upsert on the unique token column to handle duplicates gracefully.
-  const { error } = await supabase.from("device_tokens").upsert(
-    {
-      token,
-      platform: "android",
-      // app_version could be read from Capacitor.App.getInfo() if needed.
-    },
-    { onConflict: "token" },
-  );
+  const { error } = await supabase.rpc("register_device_token", { fcm_token: token });
 
   if (error) {
     // Log without printing the full token value.
