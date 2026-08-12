@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Suspense, lazy, useEffect, type ReactNode } from "react";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 import appCss from "../styles.css?url";
 // Lazy-load Toaster so the sonner bundle doesn't block the main thread
@@ -128,6 +129,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Initialise push notifications for the Android/Capacitor build.
+  // The hook is guarded by Capacitor.isNativePlatform() — it is a no-op on web.
+  usePushNotifications();
 
   return (
     <QueryClientProvider client={queryClient}>

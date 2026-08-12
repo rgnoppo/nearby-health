@@ -12,6 +12,13 @@ const config: CapacitorConfig = {
     // to work, since both need a secure context.
     androidScheme: "https",
   },
+  plugins: {
+    PushNotifications: {
+      // Do NOT automatically request permission on first launch.
+      // Permission is requested by usePushNotifications.ts at the appropriate moment.
+      presentationOptions: ["badge", "sound", "alert"],
+    },
+  },
 };
 
 export default config;

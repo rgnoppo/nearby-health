@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import ArrowDown from "lucide-react/dist/esm/icons/arrow-down";
 import ArrowUp from "lucide-react/dist/esm/icons/arrow-up";
+import Bell from "lucide-react/dist/esm/icons/bell";
 import Check from "lucide-react/dist/esm/icons/check";
 import Home from "lucide-react/dist/esm/icons/home";
 import LogOut from "lucide-react/dist/esm/icons/log-out";
@@ -15,6 +16,8 @@ import Hash from "lucide-react/dist/esm/icons/hash";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -104,6 +107,11 @@ function Dashboard() {
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState("");
   const [editingCategory, setEditingCategory] = useState<{ id: string; name: string } | null>(null);
+
+  // Notification state
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifBody, setNotifBody] = useState("");
+  const [notifDest, setNotifDest] = useState("");
 
   useEffect(() => {
     if (isAdmin.data === false) toast.error("الحساب ده مش أدمن.");
@@ -214,6 +222,46 @@ function Dashboard() {
     navigate({ to: "/edara-8f3a2c", replace: true });
   };
 
+  const sendNotification = useMutation({
+    mutationFn: async () => {
+      const title = notifTitle.trim();
+      const body = notifBody.trim();
+      if (!title || !body) throw new Error("العنوان والنص مطلوبين.");
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("غير مسجّل دخول.");
+
+      const supabaseUrl = import.meta.env["VITE_SUPABASE_URL"] as string;
+      const fnUrl = `${supabaseUrl}/functions/v1/send-notification`;
+
+      const payload: { title: string; body: string; destination?: string } = { title, body };
+      if (notifDest.trim()) payload.destination = notifDest.trim();
+
+      const res = await fetch(fnUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json() as { ok?: boolean; sent?: number; devices?: number; error?: string };
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? `FCM error (${res.status})`);
+      }
+      return json;
+    },
+    onSuccess: (data) => {
+      toast.success(`تم إرسال الإشعار. وصل لـ ${data.sent ?? 0} جهاز.`);
+      setNotifTitle("");
+      setNotifBody("");
+      setNotifDest("");
+    },
+    onError: (err: Error) => toast.error(err.message || "مقدرناش نبعت الإشعار."),
+  });
+
   const startApprove = (s: Suggestion, edit: boolean) => {
     setPrefill({
       name: s.name,
@@ -282,7 +330,7 @@ function Dashboard() {
 
       <main className="mx-auto max-w-lg px-4 pt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 rounded-xl">
+            <TabsList className="grid w-full grid-cols-5 rounded-xl">
               <TabsTrigger value="clinics">العيادات</TabsTrigger>
               <TabsTrigger value="categories">الأقسام</TabsTrigger>
               <TabsTrigger value="suggestions">
@@ -291,6 +339,7 @@ function Dashboard() {
                 <Badge className="ms-1.5">{pendingSuggestions.length}</Badge>
               ) : null}
             </TabsTrigger>
+            <TabsTrigger value="notifications"><Bell className="h-3.5 w-3.5" /></TabsTrigger>
             <TabsTrigger value="security">الحماية</TabsTrigger>
           </TabsList>
 
@@ -601,6 +650,84 @@ function Dashboard() {
 
           <TabsContent value="security" className="mt-4 space-y-3">
             <TwoFactorSettings />
+          </TabsContent>
+
+          <TabsContent value="notifications" className="mt-4 space-y-3">
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
+              <h2 className="mb-1 text-sm font-bold">إرسال إشعار لكل الأجهزة</h2>
+              <p className="mb-4 text-xs text-muted-foreground">
+                الإشعار هيوصل لكل الأجهزة اللي نزّلت التطبيق وقبلت الإشعارات.
+              </p>
+              <form
+                className="space-y-3"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!notifTitle.trim() || !notifBody.trim()) {
+                    toast.error("العنوان والنص مطلوبين.");
+                    return;
+                  }
+                  if (confirm(`تبعت الإشعار؟\n\nالعنوان: ${notifTitle}\nالنص: ${notifBody}`)) {
+                    sendNotification.mutate();
+                  }
+                }}
+              >
+                <div>
+                  <Label htmlFor="notif-title" className="text-xs font-semibold">
+                    عنوان الإشعار
+                  </Label>
+                  <Input
+                    id="notif-title"
+                    value={notifTitle}
+                    onChange={(e) => setNotifTitle(e.target.value)}
+                    placeholder="مثلاً: عيادة جديدة اتضافت"
+                    className="mt-1 h-11 rounded-xl"
+                    maxLength={200}
+                    required
+                    disabled={sendNotification.isPending}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="notif-body" className="text-xs font-semibold">
+                    نص الإشعار
+                  </Label>
+                  <Textarea
+                    id="notif-body"
+                    value={notifBody}
+                    onChange={(e) => setNotifBody(e.target.value)}
+                    placeholder="اكتب تفاصيل الإشعار هنا…"
+                    className="mt-1 min-h-[80px] rounded-xl resize-none"
+                    maxLength={500}
+                    required
+                    disabled={sendNotification.isPending}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="notif-dest" className="text-xs font-semibold">
+                    الوجهة (اختياري)
+                  </Label>
+                  <Input
+                    id="notif-dest"
+                    value={notifDest}
+                    onChange={(e) => setNotifDest(e.target.value)}
+                    placeholder="مثلاً: / أو /suggest أو /clinic/&lt;uuid&gt;"
+                    className="mt-1 h-11 rounded-xl"
+                    dir="ltr"
+                    disabled={sendNotification.isPending}
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    الوجهات المسموح بها: <span dir="ltr" className="font-mono">/</span> · <span dir="ltr" className="font-mono">/suggest</span> · <span dir="ltr" className="font-mono">/about</span> · <span dir="ltr" className="font-mono">/download</span> · <span dir="ltr" className="font-mono">/clinic/&lt;uuid&gt;</span>
+                  </p>
+                </div>
+                <Button
+                  type="submit"
+                  className="h-12 w-full rounded-xl"
+                  disabled={sendNotification.isPending || !notifTitle.trim() || !notifBody.trim()}
+                >
+                  <Bell className="h-4 w-4" />
+                  {sendNotification.isPending ? "بيبعت…" : "إرسال الإشعار"}
+                </Button>
+              </form>
+            </div>
           </TabsContent>
         </Tabs>
       </main>

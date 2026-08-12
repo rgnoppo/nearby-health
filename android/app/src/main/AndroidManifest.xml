@@ -33,4 +33,12 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+        POST_NOTIFICATIONS: required on Android 13+ (API 33+) to show push notifications.
+        On Android 12 and below this permission is not required and is simply ignored.
+        The @capacitor/push-notifications plugin requests this permission at runtime via
+        PushNotifications.requestPermissions() — it is never requested automatically on launch.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
