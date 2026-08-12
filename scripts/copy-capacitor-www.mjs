@@ -27,4 +27,11 @@ rmSync(dest, { recursive: true, force: true });
 mkdirSync(dest, { recursive: true });
 cpSync(src, dest, { recursive: true });
 
+// Prevent recursive APK bloat: remove the downloads folder from the Android asset build
+const downloadsDir = resolve(dest, "downloads");
+if (existsSync(downloadsDir)) {
+  rmSync(downloadsDir, { recursive: true, force: true });
+  console.log(`[copy-capacitor-www] Removed ${downloadsDir} to save APK size.`);
+}
+
 console.log(`[copy-capacitor-www] Copied ${src} -> ${dest}`);

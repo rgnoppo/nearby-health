@@ -320,17 +320,19 @@ function Dashboard() {
 
       <main className="mx-auto max-w-lg px-4 pt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5 rounded-xl">
-              <TabsTrigger value="clinics">العيادات</TabsTrigger>
-              <TabsTrigger value="categories">الأقسام</TabsTrigger>
-              <TabsTrigger value="suggestions">
+          <TabsList className="flex h-auto w-full flex-wrap gap-1 rounded-xl p-1">
+            <TabsTrigger className="flex-1 min-w-[70px]" value="clinics">العيادات</TabsTrigger>
+            <TabsTrigger className="flex-1 min-w-[70px]" value="categories">الأقسام</TabsTrigger>
+            <TabsTrigger className="flex-1 min-w-[100px]" value="suggestions">
               الاقتراحات
               {pendingSuggestions.length > 0 ? (
                 <Badge className="ms-1.5">{pendingSuggestions.length}</Badge>
               ) : null}
             </TabsTrigger>
-            <TabsTrigger value="notifications"><Bell className="h-3.5 w-3.5" /></TabsTrigger>
-            <TabsTrigger value="security">الحماية</TabsTrigger>
+            <TabsTrigger className="flex-1 min-w-[50px]" value="notifications">
+              <Bell className="h-4 w-4" />
+            </TabsTrigger>
+            <TabsTrigger className="flex-1 min-w-[70px]" value="security">الحماية</TabsTrigger>
           </TabsList>
 
           <TabsContent value="clinics" className="mt-4 space-y-3">
@@ -642,14 +644,14 @@ function Dashboard() {
             <TwoFactorSettings />
           </TabsContent>
 
-          <TabsContent value="notifications" className="mt-4 space-y-3">
-            <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
-              <h2 className="mb-1 text-sm font-bold">إرسال إشعار لكل الأجهزة</h2>
-              <p className="mb-4 text-xs text-muted-foreground">
+          <TabsContent value="notifications" className="mt-4 space-y-4">
+            <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-card">
+              <h2 className="mb-1 text-base font-bold">إرسال إشعار لكل الأجهزة</h2>
+              <p className="mb-5 text-sm text-muted-foreground leading-relaxed">
                 الإشعار هيوصل لكل الأجهزة اللي نزّلت التطبيق وقبلت الإشعارات.
               </p>
               <form
-                className="space-y-3"
+                className="space-y-4"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!notifTitle.trim() || !notifBody.trim()) {
@@ -662,7 +664,7 @@ function Dashboard() {
                 }}
               >
                 <div>
-                  <Label htmlFor="notif-title" className="text-xs font-semibold">
+                  <Label htmlFor="notif-title" className="text-sm font-semibold">
                     عنوان الإشعار
                   </Label>
                   <Input
@@ -670,14 +672,14 @@ function Dashboard() {
                     value={notifTitle}
                     onChange={(e) => setNotifTitle(e.target.value)}
                     placeholder="مثلاً: عيادة جديدة اتضافت"
-                    className="mt-1 h-11 rounded-xl"
+                    className="mt-1.5 h-12 rounded-xl text-base sm:text-sm"
                     maxLength={200}
                     required
                     disabled={sendNotification.isPending}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="notif-body" className="text-xs font-semibold">
+                  <Label htmlFor="notif-body" className="text-sm font-semibold">
                     نص الإشعار
                   </Label>
                   <Textarea
@@ -685,14 +687,14 @@ function Dashboard() {
                     value={notifBody}
                     onChange={(e) => setNotifBody(e.target.value)}
                     placeholder="اكتب تفاصيل الإشعار هنا…"
-                    className="mt-1 min-h-[80px] rounded-xl resize-none"
+                    className="mt-1.5 min-h-[120px] rounded-xl resize-none text-base sm:text-sm p-3"
                     maxLength={500}
                     required
                     disabled={sendNotification.isPending}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="notif-dest" className="text-xs font-semibold">
+                  <Label htmlFor="notif-dest" className="text-sm font-semibold">
                     الوجهة (اختياري)
                   </Label>
                   <Input
@@ -700,21 +702,26 @@ function Dashboard() {
                     value={notifDest}
                     onChange={(e) => setNotifDest(e.target.value)}
                     placeholder="مثلاً: / أو /suggest أو /clinic/&lt;uuid&gt;"
-                    className="mt-1 h-11 rounded-xl"
+                    className="mt-1.5 h-12 rounded-xl text-base sm:text-sm"
                     dir="ltr"
                     disabled={sendNotification.isPending}
                   />
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    الوجهات المسموح بها: <span dir="ltr" className="font-mono">/</span> · <span dir="ltr" className="font-mono">/suggest</span> · <span dir="ltr" className="font-mono">/about</span> · <span dir="ltr" className="font-mono">/download</span> · <span dir="ltr" className="font-mono">/clinic/&lt;uuid&gt;</span>
-                  </p>
+                  <div className="mt-2.5 flex flex-wrap gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                    <span>الوجهات المسموح بها:</span>
+                    <span dir="ltr" className="rounded bg-muted/50 px-1 font-mono">/</span>
+                    <span dir="ltr" className="rounded bg-muted/50 px-1 font-mono">/suggest</span>
+                    <span dir="ltr" className="rounded bg-muted/50 px-1 font-mono">/about</span>
+                    <span dir="ltr" className="rounded bg-muted/50 px-1 font-mono">/download</span>
+                    <span dir="ltr" className="rounded bg-muted/50 px-1 font-mono">/clinic/&lt;uuid&gt;</span>
+                  </div>
                 </div>
                 <Button
                   type="submit"
-                  className="h-12 w-full rounded-xl"
+                  className="mt-2 h-14 w-full rounded-xl text-base"
                   disabled={sendNotification.isPending || !notifTitle.trim() || !notifBody.trim()}
                 >
-                  <Bell className="h-4 w-4" />
-                  {sendNotification.isPending ? "بيبعت…" : "إرسال الإشعار"}
+                  <Bell className="h-5 w-5" />
+                  {sendNotification.isPending ? "بيبعت الإشعار…" : "إرسال الإشعار"}
                 </Button>
               </form>
             </div>

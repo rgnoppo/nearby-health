@@ -134,12 +134,6 @@ async function sendFcmMessage(
     data: destination ? { destination } : {},
     android: {
       priority: "high",
-      notification: {
-        // Use default channel — no special channel config needed for the
-        // minimal notification use-case here.
-        click_action: "FLUTTER_NOTIFICATION_CLICK", // unused but required by some FCM setups
-        channel_id: "default",
-      },
     },
   };
 
