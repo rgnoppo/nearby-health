@@ -101,11 +101,6 @@ export function usePushNotifications(): void {
         }
 
         // -------------------------------------------------------------------
-        // Register with FCM (triggers the `registration` event below).
-        // -------------------------------------------------------------------
-        await PushNotifications.register();
-
-        // -------------------------------------------------------------------
         // Listener: registration success → upsert token in Supabase.
         // -------------------------------------------------------------------
         const regListener = await PushNotifications.addListener(
@@ -178,6 +173,12 @@ export function usePushNotifications(): void {
           },
         );
         cleanupFns.push(() => tapListener.remove());
+
+        // -------------------------------------------------------------------
+        // Register with FCM (triggers the `registration` event).
+        // MUST be called AFTER listeners are attached to avoid race conditions.
+        // -------------------------------------------------------------------
+        await PushNotifications.register();
 
         // -------------------------------------------------------------------
         // Cold-start: if the app was launched by tapping a notification,
