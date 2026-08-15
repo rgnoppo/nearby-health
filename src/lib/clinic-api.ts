@@ -21,28 +21,48 @@ export interface FetchClinicsResult {
   hasMore: boolean;
 }
 
+export async function searchClinicsFuzzy(
+  searchQuery: string,
+  categoryId?: string | null
+): Promise<Clinic[]> {
+  const { data, error } = await supabase.rpc("search_clinics_fuzzy", {
+    search_query: searchQuery.trim(),
+    filter_category_id: categoryId || null,
+  });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function fetchClinics(
   { page, search, categoryId }: FetchClinicsParams = { page: 0 }
 ): Promise<FetchClinicsResult> {
   const from = page * CLINICS_PAGE_SIZE;
   const to   = from + CLINICS_PAGE_SIZE - 1;
 
-  let query = supabase
-    .from("clinics")
-    .select("*", { count: "exact" })
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true })
-    .range(from, to);
+  const trimmed = search?.trim();
 
-  if (categoryId) {
-    query = query.eq("category_id", categoryId);
-  }
+  let query;
+  if (trimmed) {
+    // High-performance fuzzy & normalized search via RPC
+    query = supabase
+      .rpc("search_clinics_fuzzy", {
+        search_query: trimmed,
+        filter_category_id: categoryId || null,
+      })
+      .select("*", { count: "exact" })
+      .range(from, to);
+  } else {
+    // Default chronological/sort_order listing when no search term
+    query = supabase
+      .from("clinics")
+      .select("*", { count: "exact" })
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true })
+      .range(from, to);
 
-  if (search && search.trim()) {
-    const q = search.trim();
-    query = query.or(
-      `name.ilike.%${q}%,specialty.ilike.%${q}%,address.ilike.%${q}%,landmark.ilike.%${q}%`
-    );
+    if (categoryId) {
+      query = query.eq("category_id", categoryId);
+    }
   }
 
   const { data, error, count } = await query;

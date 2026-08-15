@@ -204,6 +204,25 @@ export type Database = {
         }
         Returns: boolean
       }
+      normalize_arabic: {
+        Args: {
+          input_text: string
+        }
+        Returns: string
+      }
+      register_device_token: {
+        Args: {
+          fcm_token: string
+        }
+        Returns: undefined
+      }
+      search_clinics_fuzzy: {
+        Args: {
+          filter_category_id?: string | null
+          search_query?: string
+        }
+        Returns: Database["public"]["Tables"]["clinics"]["Row"][]
+      }
     }
     Enums: {
       app_role: "admin"
