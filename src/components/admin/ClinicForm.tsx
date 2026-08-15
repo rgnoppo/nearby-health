@@ -20,6 +20,7 @@ export type ClinicFormValues = {
   working_hours: string;
   notes: string;
   category_id: string;
+  sort_order?: string;
   last_verified_at?: string | null;
 };
 
@@ -34,6 +35,7 @@ export const emptyClinicForm: ClinicFormValues = {
   working_hours: "",
   notes: "",
   category_id: "",
+  sort_order: "",
   last_verified_at: null,
 };
 
@@ -49,6 +51,7 @@ export function clinicToForm(clinic: Clinic): ClinicFormValues {
     working_hours: clinic.working_hours,
     notes: clinic.notes ?? "",
     category_id: clinic.category_id ?? "",
+    sort_order: String(clinic.sort_order ?? 1),
     last_verified_at: clinic.last_verified_at ?? null,
   };
 }
@@ -200,6 +203,25 @@ export function ClinicForm({
             </option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <Label htmlFor="clinic-sort-order" className="text-xs font-semibold">
+          رقم الترتيب (الأولوية في القائمة)
+          <span className="ms-1.5 text-muted-foreground font-normal">(اختياري — ترتيب ذكي)</span>
+        </Label>
+        <Input
+          id="clinic-sort-order"
+          type="number"
+          min={1}
+          value={values.sort_order ?? ""}
+          onChange={(e) => set("sort_order")(e.target.value)}
+          placeholder="مثلاً: 1 لتكون في أول القائمة"
+          className="mt-1 h-11 rounded-xl tabular-nums"
+        />
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          إذا أدخلت رقماً مستخدماً بالفعل، فسيتم إزاحة العيادات التالية تلقائياً (+1) دون تكرار.
+        </p>
       </div>
 
       <div>

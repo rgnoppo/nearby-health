@@ -8,8 +8,11 @@ import MapPin from "lucide-react/dist/esm/icons/map-pin";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ClinicCard } from "@/components/ClinicCard";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down";
+import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import { fetchCategories } from "@/lib/clinic-api";
 import { cn } from "@/lib/utils";
 import { useInfiniteClinicScroll } from "@/hooks/useInfiniteClinicScroll";
@@ -64,7 +67,7 @@ function Home() {
     return (categories.data ?? []);
   }, [categories.data]);
 
-  // Server-side paginated infinite scroll — no full-list download
+  // Server-side paginated clinic fetching with manual Load More button
   const {
     clinics,
     isLoading,
@@ -72,7 +75,7 @@ function Home() {
     isError,
     totalCount,
     hasMore,
-    sentinelRef,
+    loadMore,
   } = useInfiniteClinicScroll({
     search: term,
     categoryId: activeCategory,
@@ -201,10 +204,28 @@ function Home() {
             ))
           )}
 
-          {/* Sentinel — triggers loading more when it enters the viewport */}
+          {/* Load More Button */}
           {hasMore && (
-            <div ref={sentinelRef} className="space-y-3">
-              {isFetchingMore && <ClinicSkeleton />}
+            <div className="pt-3 pb-1 flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={loadMore}
+                disabled={isFetchingMore}
+                className="h-12 w-full max-w-sm rounded-2xl border-2 border-primary/20 bg-card hover:bg-primary/5 hover:border-primary/50 text-foreground font-bold text-sm shadow-sm transition-all duration-300 active:scale-[0.98]"
+              >
+                {isFetchingMore ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span>بيحمّل باقي العيادات…</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2">
+                    <span>عرض المزيد من العيادات</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </span>
+                )}
+              </Button>
             </div>
           )}
         </section>
@@ -235,17 +256,17 @@ function Home() {
 function ClinicSkeleton() {
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-2">
-          <Skeleton className="h-6 w-3/4 max-w-[200px] rounded-lg" />
-          <Skeleton className="h-4 w-1/2 max-w-[120px] rounded-lg" />
-        </div>
+      {/* Row 1 (Top Bar) */}
+      <div className="w-full flex justify-between items-center mb-2">
+        <Skeleton className="h-6 w-16 rounded-full" />
         <div className="flex shrink-0 items-center gap-2">
-          <Skeleton className="h-6 w-16 rounded-full" />
+          <Skeleton className="h-6 w-6 rounded-full" />
           <Skeleton className="h-5 w-5 rounded-md" />
         </div>
       </div>
+
+      {/* Row 2: Doctor/Clinic Name */}
+      <Skeleton className="h-6 w-3/4 max-w-[240px] rounded-lg mb-2.5" />
 
       {/* Body: 4 rows */}
       <div className="mt-4 space-y-3">

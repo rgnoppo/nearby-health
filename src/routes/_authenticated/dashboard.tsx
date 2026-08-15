@@ -13,6 +13,7 @@ import Trash2 from "lucide-react/dist/esm/icons/trash-2";
 import X from "lucide-react/dist/esm/icons/x";
 import ShieldAlert from "lucide-react/dist/esm/icons/shield-alert";
 import Hash from "lucide-react/dist/esm/icons/hash";
+import Shuffle from "lucide-react/dist/esm/icons/shuffle";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +35,11 @@ import {
   deleteCategory,
   deleteClinic,
   fetchCategories,
+  fetchAllClinics,
   fetchClinics,
   fetchSuggestions,
+  randomizeClinicsOrder,
+  reorderClinicSmart,
   setSuggestionStatus,
   swapCategoryOrder,
   swapClinicOrder,
@@ -91,7 +95,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isAdmin = useIsAdmin();
-  const clinics = useQuery({ queryKey: ["clinics"], queryFn: () => fetchClinics() });
+  const clinics = useQuery({ queryKey: ["clinics"], queryFn: fetchAllClinics });
   const categories = useQuery({ queryKey: ["categories"], queryFn: fetchCategories });
   const suggestions = useQuery({
     queryKey: ["suggestions"],
@@ -141,12 +145,14 @@ function Dashboard() {
         notes: values.notes.trim() || null,
         category_id: values.category_id || null,
       };
-      if (mode.kind === "edit") await updateClinic(mode.clinic.id, payload);
-      else await createClinic(payload);
+      const desiredOrder = values.sort_order ? parseInt(values.sort_order, 10) : undefined;
+
+      if (mode.kind === "edit") await updateClinic(mode.clinic.id, payload, desiredOrder);
+      else await createClinic(payload, desiredOrder);
       if (approvingId) await setSuggestionStatus(approvingId, "approved");
     },
     onSuccess: () => {
-      toast.success(mode.kind === "edit" ? "تم تحديث العيادة." : "تمت إضافة العيادة.");
+      toast.success(mode.kind === "edit" ? "تم تحديث العيادة والترتيب بنجاح." : "تمت إضافة العيادة بالترتيب المطلوب.");
       setMode({ kind: "none" });
       setPrefill(null);
       setApprovingId(null);
@@ -168,6 +174,15 @@ function Dashboard() {
     mutationFn: ({ a, b }: { a: Clinic; b: Clinic }) => swapClinicOrder(a, b),
     onSuccess: invalidate,
     onError: () => toast.error("مقدرناش نرتّب القايمة."),
+  });
+
+  const randomize = useMutation({
+    mutationFn: () => randomizeClinicsOrder(),
+    onSuccess: () => {
+      toast.success("تم ترتيب جميع العيادات عشوائياً وتحديث أرقام الترتيب.");
+      invalidate();
+    },
+    onError: () => toast.error("مقدرناش نرتب العيادات عشوائياً."),
   });
 
   const decide = useMutation({
@@ -290,7 +305,7 @@ function Dashboard() {
     );
   }
 
-  const list = clinics.data?.data || [];
+  const list = Array.isArray(clinics.data) ? clinics.data : (clinics.data as any)?.data || [];
   const categoryList = Array.isArray(categories.data) ? categories.data : [];
   const categoryNames = new Map(categoryList.map((c) => [c.id, c.name] as const));
   const safeSuggestions = Array.isArray(suggestions.data) ? suggestions.data : [];
@@ -337,16 +352,35 @@ function Dashboard() {
 
           <TabsContent value="clinics" className="mt-4 space-y-3">
             {mode.kind === "none" ? (
-              <Button
-                className="h-12 w-full rounded-xl"
-                onClick={() => {
-                  setPrefill(emptyClinicForm);
-                  setApprovingId(null);
-                  setMode({ kind: "new" });
-                }}
-              >
-                <Plus className="h-4 w-4" /> ضيف عيادة
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  className="h-12 flex-1 rounded-xl"
+                  onClick={() => {
+                    setPrefill({
+                      ...emptyClinicForm,
+                      sort_order: String(list.length + 1),
+                    });
+                    setApprovingId(null);
+                    setMode({ kind: "new" });
+                  }}
+                >
+                  <Plus className="h-4 w-4" /> ضيف عيادة
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12 rounded-xl border-dashed border-primary/40 font-bold hover:bg-primary/5 hover:text-primary gap-1.5 px-4 shrink-0"
+                  disabled={randomize.isPending || list.length === 0}
+                  onClick={() => {
+                    if (confirm("هل تريد إعادة ترتيب جميع العيادات بشكل عشوائي؟")) {
+                      randomize.mutate();
+                    }
+                  }}
+                >
+                  <Shuffle className="h-4 w-4" />
+                  {randomize.isPending ? "بيترتب…" : "ترتيب عشوائي"}
+                </Button>
+              </div>
             ) : (
               <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
                 <h2 className="mb-3 text-sm font-bold">
@@ -375,7 +409,13 @@ function Dashboard() {
                   key={clinic.id}
                   className="rounded-2xl border border-border bg-card p-3 shadow-card"
                 >
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+                  <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5">
+                    {/* Priority badge */}
+                    <div className="flex shrink-0 items-center justify-center">
+                      <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-xl bg-primary/10 px-2 text-xs font-bold text-primary tabular-nums">
+                        #{clinic.sort_order}
+                      </span>
+                    </div>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-bold">{clinic.name}</p>
                       <p className="truncate text-xs text-muted-foreground">

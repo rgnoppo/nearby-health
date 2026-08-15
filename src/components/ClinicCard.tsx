@@ -39,28 +39,24 @@ export function ClinicCard({
   const visiblePhones = allPhones.slice(0, 2);
   const hiddenCount = allPhones.length - visiblePhones.length;
 
+  const displayBadge = categoryName || clinic.specialty;
+
   return (
     <Link
       to="/clinic/$clinicId"
       params={{ clinicId: clinic.id }}
       className="card-interactive block rounded-2xl border border-border bg-card p-5 shadow-card transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:bg-secondary/40"
     >
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-bold leading-snug">{clinic.name}</h2>
-          {clinic.specialty ? (
-            <p className="mt-0.5 text-sm font-semibold text-primary">
-              {clinic.specialty}
-            </p>
+      {/* Row 1 (Top Bar): Badge on the right, Share/Chevron on the left */}
+      <div className="w-full flex justify-between items-center mb-2">
+        <div>
+          {displayBadge ? (
+            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-secondary-foreground">
+              {displayBadge}
+            </span>
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {categoryName ? (
-            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-secondary-foreground">
-              {categoryName}
-            </span>
-          ) : null}
           <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
             <ShareButton id={clinic.id} name={clinic.name} type="clinic" variant="icon" className="h-8 w-8 !bg-transparent text-muted-foreground hover:text-foreground" />
           </div>
@@ -68,7 +64,12 @@ export function ClinicCard({
         </div>
       </div>
 
-      <dl className="mt-3 space-y-2 text-[0.9rem] text-muted-foreground">
+      {/* Row 2: Doctor/Clinic Name (Full Width) */}
+      <h2 className="w-full block text-lg font-bold leading-snug text-foreground mb-2.5">
+        {clinic.name}
+      </h2>
+
+      <dl className="space-y-2 text-[0.9rem] text-muted-foreground">
         <div className="flex min-w-0 items-start gap-2.5">
           <Navigation width={16} height={16} className="mt-0.5 shrink-0 text-primary/70" aria-hidden="true" />
           <dd className="min-w-0 leading-snug">{sanitizeField(clinic.landmark)}</dd>

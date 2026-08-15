@@ -216,6 +216,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      randomize_clinics_order: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      reorder_clinic_smart: {
+        Args: {
+          new_order: number
+          target_clinic_id: string
+        }
+        Returns: undefined
+      }
+      resequence_clinics: {
+        Args: {
+          clinic_ids: string[]
+        }
+        Returns: undefined
+      }
       search_clinics_fuzzy: {
         Args: {
           filter_category_id?: string | null

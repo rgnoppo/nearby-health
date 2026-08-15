@@ -14,13 +14,13 @@ export interface UseInfiniteClinicScrollResult {
   isError: boolean;
   totalCount: number;
   hasMore: boolean;
-  sentinelRef: React.RefObject<HTMLDivElement | null>;
+  loadMore: () => void;
   reset: () => void;
 }
 
 /**
  * Fetches clinics page-by-page from Supabase (server-side pagination).
- * Appends results on scroll — no client-side search, no full-list download.
+ * Initial page loads 10 clinics; additional pages are fetched on demand via loadMore.
  *
  * Debounces the search term by 400 ms so we don't fire a request on every keystroke.
  */
@@ -63,6 +63,7 @@ export function useInfiniteClinicScroll(
     setHasMore(false);
     setIsError(false);
     setIsLoading(true);
+    setIsFetchingMore(false);
   }, []);
 
   // Reset when debounced values change
@@ -106,26 +107,12 @@ export function useInfiniteClinicScroll(
     return () => { cancelled = true; };
   }, [page, debouncedSearch, debouncedCategory]);
 
-  // Sentinel ref — attach to a loading indicator at the bottom
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el || !hasMore) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && !isFetchingMore && !isLoading) {
-          setIsFetchingMore(true);
-          setPage((prev) => prev + 1);
-        }
-      },
-      { rootMargin: "300px" } // Start loading 300px before hitting bottom
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasMore, isFetchingMore, isLoading]);
+  const loadMore = useCallback(() => {
+    if (!isFetchingMore && !isLoading && hasMore) {
+      setIsFetchingMore(true);
+      setPage((prev) => prev + 1);
+    }
+  }, [isFetchingMore, isLoading, hasMore]);
 
   return {
     clinics,
@@ -134,7 +121,7 @@ export function useInfiniteClinicScroll(
     isError,
     totalCount,
     hasMore,
-    sentinelRef,
+    loadMore,
     reset,
   };
 }

@@ -155,22 +155,58 @@ export async function setSuggestionStatus(id: string, status: "approved" | "reje
   if (error) throw error;
 }
 
-export async function createClinic(input: ClinicInput) {
-  const { data: last } = await supabase
+export async function fetchAllClinics(): Promise<Clinic[]> {
+  const { data, error } = await supabase
     .from("clinics")
-    .select("sort_order")
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const { error } = await supabase
-    .from("clinics")
-    .insert({ ...input, sort_order: (last?.sort_order ?? 0) + 1 });
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function reorderClinicSmart(clinicId: string, newOrder: number): Promise<void> {
+  const { error } = await supabase.rpc("reorder_clinic_smart", {
+    target_clinic_id: clinicId,
+    new_order: newOrder,
+  });
   if (error) throw error;
 }
 
-export async function updateClinic(id: string, patch: ClinicPatch) {
+export async function randomizeClinicsOrder(): Promise<void> {
+  const { error } = await supabase.rpc("randomize_clinics_order", {});
+  if (error) throw error;
+}
+
+export async function resequenceClinics(clinicIds: string[]): Promise<void> {
+  const { error } = await supabase.rpc("resequence_clinics", {
+    clinic_ids: clinicIds,
+  });
+  if (error) throw error;
+}
+
+export async function createClinic(input: ClinicInput, desiredOrder?: number) {
+  const { data, error } = await supabase
+    .from("clinics")
+    .insert({ ...input, sort_order: desiredOrder ?? 999999 })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  if (desiredOrder !== undefined && desiredOrder > 0) {
+    await reorderClinicSmart(data.id, desiredOrder);
+  } else {
+    await reorderClinicSmart(data.id, 999999);
+  }
+}
+
+export async function updateClinic(id: string, patch: ClinicPatch, desiredOrder?: number) {
   const { error } = await supabase.from("clinics").update(patch).eq("id", id);
   if (error) throw error;
+
+  if (desiredOrder !== undefined && desiredOrder > 0) {
+    await reorderClinicSmart(id, desiredOrder);
+  }
 }
 
 export async function deleteClinic(id: string) {
