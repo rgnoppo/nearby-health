@@ -48,10 +48,13 @@ export function ClinicCard({
       className="card-interactive block rounded-2xl border border-border bg-card p-5 shadow-card transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:bg-secondary/40"
     >
       {/* Row 1 (Top Bar): Badge on the right, Share/Chevron on the left */}
-      <div className="w-full flex justify-between items-center mb-2">
-        <div>
+      <div className="w-full flex items-center justify-between gap-2 mb-2">
+        <div className="min-w-0 max-w-[70%]">
           {displayBadge ? (
-            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-secondary-foreground">
+            <span
+              title={displayBadge}
+              className="inline-block max-w-full truncate whitespace-nowrap rounded-full bg-secondary px-3 py-1 text-xs font-bold text-secondary-foreground"
+            >
               {displayBadge}
             </span>
           ) : null}
